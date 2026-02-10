@@ -4,11 +4,11 @@ from typing import List, Optional
 class AITrackSuggestion(BaseModel):
     title: str
     artist: str
-    bpm: int
-    key: str
-    energy: int  # 1-10
-    position: str  # "opener", "build", "peak", "transition", "closer"
-    reasoning: str
+    bpm: Optional[int] = None
+    key: Optional[str] = None
+    energy: Optional[int] = None  # 1-10
+    position: Optional[str] = None  # "opener", "build", "peak", "transition", "closer"
+    reasoning: Optional[str] = None
 
 class AIPlaylistOption(BaseModel):
     name: str
@@ -29,3 +29,7 @@ class AIGenerateRequest(BaseModel):
 
 class AIGenerateResponse(BaseModel):
     playlists: List[AIPlaylistOption]
+
+class AIRefineRequest(BaseModel):
+    refinement: str
+    current_playlist: dict

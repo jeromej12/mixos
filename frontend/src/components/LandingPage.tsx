@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, ListMusic, Music, Zap, TrendingUp, Radio, AlertCircle } from 'lucide-react';
+import { Sparkles, ListMusic, Music, Zap, TrendingUp, Radio, AlertCircle, Clock } from 'lucide-react';
 import { api } from '../services/api';
 import { AIResults } from './AIResults';
 
@@ -8,6 +8,7 @@ export const LandingPage: React.FC<{ onNavigate: (view: string) => void }> = ({ 
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aiResults, setAiResults] = useState<any>(null);
+  const [targetDuration, setTargetDuration] = useState<number | undefined>(undefined);
 
   const handleAIGenerate = async () => {
     if (!aiQuery.trim()) return;
@@ -16,7 +17,7 @@ export const LandingPage: React.FC<{ onNavigate: (view: string) => void }> = ({ 
     setError(null);
 
     try {
-      const result = await api.generateSetlist(aiQuery);
+      const result = await api.generateSetlist(aiQuery, 1, targetDuration);
       setAiResults(result);
     } catch (err: any) {
       setError(err.message || 'Failed to generate setlist. Make sure the backend is running with Claude API key configured.');
@@ -33,6 +34,7 @@ export const LandingPage: React.FC<{ onNavigate: (view: string) => void }> = ({ 
     setAiResults(null);
     setAiQuery('');
     setError(null);
+    setTargetDuration(undefined);
   };
 
   // Show AI results if we have them
@@ -112,6 +114,37 @@ export const LandingPage: React.FC<{ onNavigate: (view: string) => void }> = ({ 
                       className="px-3 py-1 bg-gray-950 hover:bg-purple-500/10 border border-gray-700/50 hover:border-purple-500/30 rounded-full text-xs text-gray-400 hover:text-purple-300 transition-all"
                     >
                       {example}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Set Duration */}
+              <div className="mb-6">
+                <label className="flex items-center gap-2 text-gray-400 mb-3 font-medium">
+                  <Clock className="w-4 h-4" />
+                  Set Duration
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: 'Auto', value: undefined },
+                    { label: '30 min', value: 30 },
+                    { label: '1 hr', value: 60 },
+                    { label: '1.5 hr', value: 90 },
+                    { label: '2 hr', value: 120 },
+                    { label: '3 hr', value: 180 },
+                  ].map((option) => (
+                    <button
+                      key={option.label}
+                      type="button"
+                      onClick={() => setTargetDuration(option.value)}
+                      className={`px-3 py-1.5 rounded-full text-sm transition-all border ${
+                        targetDuration === option.value
+                          ? 'bg-purple-500/20 border-purple-500/50 text-purple-300'
+                          : 'bg-gray-950 border-gray-700/50 text-gray-400 hover:border-purple-500/30 hover:text-purple-300'
+                      }`}
+                    >
+                      {option.label}
                     </button>
                   ))}
                 </div>

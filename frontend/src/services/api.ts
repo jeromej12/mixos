@@ -40,6 +40,27 @@ export const api = {
     return response.json();
   },
 
+  // AI setlist refinement
+  refineSetlist: async (refinement: string, currentPlaylist: any): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/ai/refine-setlist`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        refinement,
+        current_playlist: currentPlaylist
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'AI refinement failed');
+    }
+
+    return response.json();
+  },
+
   // Health check
   healthCheck: async (): Promise<boolean> => {
     try {
