@@ -1,12 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-import os
 
 # Load environment variables BEFORE importing routers/services
 load_dotenv()
 
-from app.routers import spotify, ai, tracks, itunes
+from app.routers import ai, tracks, itunes
 
 # Create FastAPI app
 app = FastAPI(
@@ -25,7 +24,6 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(spotify.router, prefix="/api")
 app.include_router(ai.router, prefix="/api")
 app.include_router(tracks.router, prefix="/api")
 app.include_router(itunes.router, prefix="/api")

@@ -1,16 +1,16 @@
 from fastapi import APIRouter, HTTPException, Query
-from app.models.schemas import Track, SpotifySearchResult
+from app.models.schemas import Track, SearchResult
 from app.services.itunes_service import itunes_service
 
 router = APIRouter(prefix="/itunes", tags=["itunes"])
 
 
-@router.get("/search", response_model=SpotifySearchResult)
+@router.get("/search", response_model=SearchResult)
 async def search_tracks(q: str = Query(..., description="Search query")):
     """Search for tracks on iTunes/Apple Music."""
     try:
         tracks = itunes_service.search_tracks(q)
-        return SpotifySearchResult(tracks=tracks, total=len(tracks))
+        return SearchResult(tracks=tracks, total=len(tracks))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

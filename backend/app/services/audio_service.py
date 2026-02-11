@@ -1,17 +1,14 @@
-import tempfile
 import os
 import uuid
 from typing import Dict, List, Optional
 
 import numpy as np
 import essentia.standard as es
-from pydub import AudioSegment
 import mutagen
 from mutagen.mp3 import MP3
 from mutagen.flac import FLAC
 
 from app.models.schemas import Track
-from app.services.spotify_service import spotify_service
 
 
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads')
@@ -35,31 +32,9 @@ class AudioService:
         try:
             metadata = self._extract_metadata(stored_path, filename)
 
-            # Try Spotify first for accurate BPM/key/energy
-            audio_features = None
-            title = metadata['title']
-            artist = metadata['artist']
-            print(f"\n{'='*50}")
-            print(f"ANALYZING: '{title}' by '{artist}'")
-            print(f"Spotify available: {spotify_service.sp is not None}")
-
-            if title and artist and artist != 'Unknown Artist':
-                print(f"Searching Spotify...")
-                audio_features = spotify_service.lookup_audio_features(title, artist)
-                if audio_features:
-                    print(f"SPOTIFY MATCH: BPM={audio_features.get('bpm')}, Key={audio_features.get('key')}, Energy={audio_features.get('energy')}")
-                else:
-                    print(f"No Spotify match found")
-            else:
-                print(f"Skipping Spotify (missing metadata)")
-
-            # Fall back to local analysis if Spotify didn't find it
-            if not audio_features:
-                print(f"Using LOCAL analysis...")
-                audio_features = self._analyze_audio(stored_path)
-                print(f"LOCAL RESULT: BPM={audio_features.get('bpm')}, Key={audio_features.get('key')}, Energy={audio_features.get('energy')}")
-
-            print(f"{'='*50}\n")
+            print(f"\nAnalyzing: '{metadata['title']}' by '{metadata['artist']}'")
+            audio_features = self._analyze_audio(stored_path)
+            print(f"Result: BPM={audio_features.get('bpm')}, Key={audio_features.get('key')}, Energy={audio_features.get('energy')}")
 
             track = Track(
                 id=track_id,
