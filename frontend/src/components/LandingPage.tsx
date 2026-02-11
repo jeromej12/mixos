@@ -71,9 +71,8 @@ export const LandingPage: React.FC<{ onNavigate: (view: string) => void }> = ({ 
         <div className="grid md:grid-cols-2 gap-8 mb-12">
 
           {/* AI Generation Card */}
-          <div className="group relative">
-            <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-red-600 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-300"></div>
-            <div className="relative bg-gray-900/80 rounded-2xl p-8 border border-purple-500/20 hover:border-purple-500/40 transition-all">
+          <div className="glow-border-hover">
+            <div className="relative bg-gray-900 rounded-2xl p-8">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-3 bg-gradient-to-br from-purple-600 to-red-600 rounded-xl">
                   <Sparkles className="w-8 h-8 text-white" />
@@ -204,9 +203,8 @@ export const LandingPage: React.FC<{ onNavigate: (view: string) => void }> = ({ 
           </div>
 
           {/* Manual Builder Card */}
-          <div className="group relative">
-            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-300"></div>
-            <div className="relative bg-gray-900/80 rounded-2xl p-8 border border-blue-500/20 hover:border-blue-500/40 transition-all">
+          <div className="glow-border-hover">
+            <div className="relative bg-gray-900 rounded-2xl p-8">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-3 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl">
                   <ListMusic className="w-8 h-8 text-white" />

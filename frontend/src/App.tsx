@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { LandingPage } from './components/LandingPage';
 import { Dashboard } from './components/Dashboard';
 import { TrackSearch } from './components/TrackSearch';
+import { ManualBuilder } from './components/ManualBuilder';
 
 type View = 'landing' | 'dashboard' | 'search' | 'manual-builder';
 
@@ -71,20 +72,7 @@ function App() {
       {/* Main Content */}
       {currentView === 'dashboard' && <Dashboard />}
       {currentView === 'search' && <TrackSearch />}
-      {currentView === 'manual-builder' && (
-        <div className="min-h-screen bg-black flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-white mb-4">Manual Builder</h1>
-            <p className="text-gray-500">Coming in Phase 2!</p>
-            <button
-              onClick={() => setCurrentView('landing')}
-              className="mt-6 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 rounded-lg text-white font-semibold transition-colors"
-            >
-              Back to Home
-            </button>
-          </div>
-        </div>
-      )}
+      {currentView === 'manual-builder' && <ManualBuilder />}
     </div>
   );
 }

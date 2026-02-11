@@ -3,18 +3,22 @@ import { Track, SpotifySearchResult } from '../types';
 const API_BASE_URL = '/api';
 
 export const api = {
-  // Spotify search
+  // iTunes/Apple Music search
   searchTracks: async (query: string): Promise<Track[]> => {
-    const response = await fetch(`${API_BASE_URL}/spotify/search?q=${encodeURIComponent(query)}`);
+    const response = await fetch(`${API_BASE_URL}/itunes/search?q=${encodeURIComponent(query)}`);
     if (!response.ok) throw new Error('Search failed');
     const data: SpotifySearchResult = await response.json();
     return data.tracks;
   },
 
-  // Get track details
-  getTrack: async (spotifyId: string): Promise<Track> => {
-    const response = await fetch(`${API_BASE_URL}/spotify/track/${spotifyId}`);
-    if (!response.ok) throw new Error('Failed to get track');
+  // Analyze track preview for BPM/key/energy
+  analyzeTrack: async (track: Track): Promise<Track> => {
+    const response = await fetch(`${API_BASE_URL}/itunes/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(track),
+    });
+    if (!response.ok) throw new Error('Failed to analyze track');
     return response.json();
   },
 
@@ -59,6 +63,39 @@ export const api = {
     }
 
     return response.json();
+  },
+
+  // Upload local audio file for analysis
+  uploadTrack: async (file: File): Promise<Track> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}/tracks/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Upload failed');
+    }
+
+    return response.json();
+  },
+
+  // List all tracks in the library
+  getLibrary: async (): Promise<Track[]> => {
+    const response = await fetch(`${API_BASE_URL}/tracks/library`);
+    if (!response.ok) throw new Error('Failed to load library');
+    return response.json();
+  },
+
+  // Delete a track from the library
+  deleteTrack: async (trackId: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/tracks/${trackId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to delete track');
   },
 
   // Health check

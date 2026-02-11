@@ -17,7 +17,14 @@ export const formatTotalDuration = (seconds: number): string => {
 export const calculateAverageBPM = (tracks: any[]): number => {
   const tracksWithBPM = tracks.filter(t => t.bpm);
   if (tracksWithBPM.length === 0) return 0;
-  
+
   const sum = tracksWithBPM.reduce((acc, t) => acc + (t.bpm || 0), 0);
   return Math.round(sum / tracksWithBPM.length);
+};
+
+export const calculateAverageEnergy = (tracks: any[]): number => {
+  const tracksWithEnergy = tracks.filter(t => t.energy);
+  if (tracksWithEnergy.length === 0) return 0;
+  const sum = tracksWithEnergy.reduce((acc, t) => acc + (t.energy || 0), 0);
+  return Math.round(sum / tracksWithEnergy.length * 10) / 10;
 };

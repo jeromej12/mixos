@@ -214,7 +214,8 @@ export const AIResults: React.FC<AIResultsProps> = ({ playlists: initialPlaylist
         {/* Playlists (animated) */}
         <div ref={contentRef} className={`space-y-8 ${animationClass}`}>
           {playlists.map((playlist, idx) => (
-            <div key={idx} className="bg-gray-900/80 rounded-2xl p-8 border border-gray-700/50">
+            <div key={idx} className="glow-border-always">
+              <div className="bg-gray-900 rounded-2xl p-8">
               {/* Playlist Header */}
               <div className="mb-6">
                 <div className="flex items-start justify-between mb-4">
@@ -349,6 +350,7 @@ export const AIResults: React.FC<AIResultsProps> = ({ playlists: initialPlaylist
                 <button className="w-full py-3 bg-gradient-to-r from-purple-600 via-red-600 to-blue-600 hover:from-purple-500 hover:via-red-500 hover:to-blue-500 rounded-lg text-white font-semibold transition-all">
                   Use This Setlist Template
                 </button>
+              </div>
               </div>
             </div>
           ))}

@@ -46,3 +46,106 @@ code {
 .slide-in-right {
   animation: slideInRight 0.35s ease-out forwards;
 }
+
+/* Rotating gradient border */
+@keyframes borderRotate {
+  0% { --border-angle: 0deg; }
+  100% { --border-angle: 360deg; }
+}
+
+@property --border-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.glow-border-always,
+.glow-border-hover {
+  position: relative;
+  border-radius: 1rem;
+  isolation: isolate;
+}
+
+.glow-border-always > *,
+.glow-border-hover > * {
+  position: relative;
+  z-index: 2;
+}
+
+.glow-border-always > *:first-child,
+.glow-border-hover > *:first-child {
+  background: rgb(17, 24, 39) !important;
+  border-radius: inherit;
+}
+
+.glow-border-always::before,
+.glow-border-hover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--border-angle),
+    #7c3aed,
+    #ef4444,
+    #3b82f6,
+    #7c3aed
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Always animating */
+.glow-border-always::before {
+  animation: borderRotate 4s linear infinite;
+}
+
+/* Only on hover */
+.glow-border-hover::before {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.glow-border-hover:hover::before {
+  opacity: 1;
+  animation: borderRotate 4s linear infinite;
+}
+
+/* Outer glow that matches */
+.glow-border-always::after,
+.glow-border-hover::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--border-angle),
+    #7c3aed44,
+    #ef444444,
+    #3b82f644,
+    #7c3aed44
+  );
+  filter: blur(12px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.glow-border-always::after {
+  animation: borderRotate 4s linear infinite;
+}
+
+.glow-border-hover::after {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.glow-border-hover:hover::after {
+  opacity: 1;
+  animation: borderRotate 4s linear infinite;
+}

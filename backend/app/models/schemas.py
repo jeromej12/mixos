@@ -1,8 +1,20 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
-class SpotifyAudioFeatures(BaseModel):
+
+class CamelModel(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+        serialize_by_alias=True,
+        alias_generator=lambda s: ''.join(
+            word.capitalize() if i else word
+            for i, word in enumerate(s.split('_'))
+        ),
+    )
+
+
+class SpotifyAudioFeatures(CamelModel):
     danceability: float
     energy: float
     key: int
@@ -16,7 +28,7 @@ class SpotifyAudioFeatures(BaseModel):
     tempo: float
     time_signature: int
 
-class Track(BaseModel):
+class Track(CamelModel):
     id: str
     title: str
     artist: str
