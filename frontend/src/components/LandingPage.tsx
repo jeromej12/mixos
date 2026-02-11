@@ -3,7 +3,7 @@ import { Sparkles, ListMusic, Music, Zap, TrendingUp, Radio, AlertCircle, Clock 
 import { api } from '../services/api';
 import { AIResults } from './AIResults';
 
-export const LandingPage: React.FC<{ onNavigate: (view: string) => void }> = ({ onNavigate }) => {
+export const LandingPage: React.FC<{ onNavigate: (view: string) => void; onShowSetlist?: () => void }> = ({ onNavigate, onShowSetlist }) => {
   const [aiQuery, setAiQuery] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +39,7 @@ export const LandingPage: React.FC<{ onNavigate: (view: string) => void }> = ({ 
 
   // Show AI results if we have them
   if (aiResults) {
-    return <AIResults playlists={aiResults.playlists} onBack={handleBackToLanding} />;
+    return <AIResults playlists={aiResults.playlists} onBack={handleBackToLanding} onShowSetlist={onShowSetlist} />;
   }
 
   return (
@@ -71,8 +71,8 @@ export const LandingPage: React.FC<{ onNavigate: (view: string) => void }> = ({ 
         <div className="grid md:grid-cols-2 gap-8 mb-12">
 
           {/* AI Generation Card */}
-          <div className="glow-border-hover">
-            <div className="relative bg-gray-900 rounded-2xl p-8">
+          <div className="glow-border-hover flex flex-col">
+            <div className="relative bg-gray-900 rounded-2xl p-8 flex-1 flex flex-col">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-3 bg-gradient-to-br from-purple-600 to-red-600 rounded-xl">
                   <Sparkles className="w-8 h-8 text-white" />
@@ -203,8 +203,8 @@ export const LandingPage: React.FC<{ onNavigate: (view: string) => void }> = ({ 
           </div>
 
           {/* Manual Builder Card */}
-          <div className="glow-border-hover">
-            <div className="relative bg-gray-900 rounded-2xl p-8">
+          <div className="glow-border-hover flex flex-col">
+            <div className="relative bg-gray-900 rounded-2xl p-8 flex-1 flex flex-col">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-3 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl">
                   <ListMusic className="w-8 h-8 text-white" />
@@ -257,7 +257,7 @@ export const LandingPage: React.FC<{ onNavigate: (view: string) => void }> = ({ 
               </button>
 
               {/* Best For */}
-              <div className="mt-6 pt-6 border-t border-gray-800">
+              <div className="mt-auto pt-6 border-t border-gray-800">
                 <p className="text-xs text-gray-500 mb-2">Perfect for:</p>
                 <div className="flex flex-wrap gap-2">
                   {[

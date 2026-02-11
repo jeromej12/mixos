@@ -98,13 +98,4 @@ export const api = {
     if (!response.ok) throw new Error('Failed to delete track');
   },
 
-  // Health check
-  healthCheck: async (): Promise<boolean> => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/health`);
-      return response.ok;
-    } catch {
-      return false;
-    }
-  }
 };

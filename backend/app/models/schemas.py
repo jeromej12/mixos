@@ -24,7 +24,7 @@ class Track(CamelModel):
     energy: Optional[float] = None
     duration: int  # seconds
     genre: Optional[str] = None
-    source: str  # 'local' or 'itunes'
+    source: str  # 'local', 'itunes', or 'ai'
     preview_url: Optional[str] = None
 
 class SearchResult(BaseModel):

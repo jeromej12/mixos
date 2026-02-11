@@ -1,21 +1,25 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Upload, Music, Plus, Trash2, Clock, Zap,
-  TrendingUp, Loader2, AlertCircle, X, FileAudio, Search,
-  Play, Pause, Volume2
+  Upload, Music, Plus, Trash2,
+  Loader2, AlertCircle, X, FileAudio, Search,
+  Play, Pause, Volume2, ArrowLeft, HardDrive, Globe
 } from 'lucide-react';
 import { api } from '../services/api';
 import { Track } from '../types';
 import { useSetlistStore } from '../store/setlistStore';
-import { formatDuration, formatTotalDuration, calculateAverageBPM, calculateAverageEnergy } from '../utils/format';
+import { formatDuration } from '../utils/format';
 
-export const ManualBuilder: React.FC = () => {
+interface ManualBuilderProps {
+  onBack?: () => void;
+  onShowSetlist?: () => void;
+}
+
+export const ManualBuilder: React.FC<ManualBuilderProps> = ({ onBack, onShowSetlist }) => {
   const [library, setLibrary] = useState<Track[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const [showSetlist, setShowSetlist] = useState(false);
   const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
   const [playbackProgress, setPlaybackProgress] = useState(0);
   const [showSearch, setShowSearch] = useState(false);
@@ -28,16 +32,8 @@ export const ManualBuilder: React.FC = () => {
 
   const {
     currentSetlist,
-    createNewSetlist,
     addTrackToSetlist,
-    removeTrackFromSetlist,
   } = useSetlistStore();
-
-  useEffect(() => {
-    if (!currentSetlist) {
-      createNewSetlist('New Setlist');
-    }
-  }, []);
 
   useEffect(() => {
     loadLibrary();
@@ -122,7 +118,7 @@ export const ManualBuilder: React.FC = () => {
 
   const handleAddToSetlist = (track: Track) => {
     addTrackToSetlist(track);
-    setShowSetlist(true);
+    onShowSetlist?.();
   };
 
   const handlePlayPause = useCallback((track: Track) => {
@@ -186,6 +182,17 @@ export const ManualBuilder: React.FC = () => {
       <div className="fixed inset-0 bg-gradient-to-br from-purple-950/40 via-black to-blue-950/30 pointer-events-none" />
 
       <div className={`max-w-7xl mx-auto px-4 py-8 relative z-10 ${nowPlaying ? 'pb-28' : ''}`}>
+        {/* Back Button */}
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="mb-6 flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-800 border border-gray-700/50 hover:border-gray-600/50 rounded-lg text-gray-300 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </button>
+        )}
+
         {/* Source Buttons */}
         <div className="flex items-center gap-4 mb-8">
           <button
@@ -324,244 +331,165 @@ export const ManualBuilder: React.FC = () => {
           </div>
         )}
 
-        <div className="flex gap-6">
-          {/* Left: Track Library */}
-          <div className="flex-1">
-            {/* Upload Drop Zone */}
-            <div
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onDragLeave={() => setDragOver(false)}
-              onClick={() => fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all mb-6 ${
-                dragOver
-                  ? 'border-purple-500 bg-purple-500/10'
-                  : 'border-gray-700/50 hover:border-gray-600 bg-gray-900/40'
-              }`}
-            >
-              {uploading ? (
-                <div className="flex flex-col items-center gap-3">
-                  <Loader2 className="w-10 h-10 text-purple-500 animate-spin" />
-                  <p className="text-gray-400">{uploadProgress || 'Analyzing...'}</p>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-3">
-                  <Upload className="w-10 h-10 text-gray-600" />
-                  <p className="text-gray-400 font-medium">
-                    Drop audio files here or click to browse
-                  </p>
-                  <p className="text-gray-600 text-sm">MP3, WAV, FLAC up to 50MB</p>
-                </div>
-              )}
-            </div>
-
-            {/* Your Songs */}
-            <div>
-              <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <FileAudio className="w-5 h-5 text-purple-500" />
-                Your Songs
-                {library.length > 0 && (
-                  <span className="text-gray-500 text-sm font-normal">({library.length})</span>
-                )}
-              </h2>
-
-              {library.length === 0 && !uploading ? (
-                <div className="text-center py-12 bg-gray-900/40 rounded-xl border border-gray-800/50">
-                  <Music className="w-12 h-12 text-gray-700 mx-auto mb-3" />
-                  <p className="text-gray-500">No songs yet. Import some tracks to get started.</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {library.map((track) => {
-                    const isInSetlist = setlistTracks.some(t => t.id === track.id);
-                    const isPlaying = playingTrackId === track.id;
-                    return (
-                      <div
-                        key={track.id}
-                        className={`bg-gray-900/80 rounded-lg p-4 border transition-colors flex items-center gap-4 ${
-                          isPlaying
-                            ? 'border-purple-500/50 bg-purple-950/20'
-                            : 'border-gray-700/30 hover:border-gray-700/50'
-                        }`}
-                      >
-                        {/* Play/Pause Button */}
-                        {track.source === 'local' || track.previewUrl ? (
-                          <button
-                            onClick={() => handlePlayPause(track)}
-                            className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
-                              isPlaying
-                                ? 'bg-purple-500 text-white'
-                                : 'bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white'
-                            }`}
-                            title={isPlaying ? 'Pause' : 'Play'}
-                          >
-                            {isPlaying ? (
-                              <Pause className="w-4 h-4" />
-                            ) : (
-                              <Play className="w-4 h-4 ml-0.5" />
-                            )}
-                          </button>
-                        ) : (
-                          <div
-                            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-gray-800/50 text-gray-600 cursor-not-allowed"
-                            title="No preview available"
-                          >
-                            <Play className="w-4 h-4 ml-0.5" />
-                          </div>
-                        )}
-
-                        {/* Add Button */}
-                        <button
-                          onClick={() => handleAddToSetlist(track)}
-                          disabled={isInSetlist}
-                          className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
-                            isInSetlist
-                              ? 'bg-green-500/20 text-green-400 cursor-default'
-                              : 'bg-purple-600 hover:bg-purple-500 text-white'
-                          }`}
-                          title={isInSetlist ? 'Already in setlist' : 'Add to setlist'}
-                        >
-                          {isInSetlist ? (
-                            <span className="text-xs font-bold">&#10003;</span>
-                          ) : (
-                            <Plus className="w-4 h-4" />
-                          )}
-                        </button>
-
-                        {/* Track Info */}
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-white font-semibold truncate">{track.title}</h3>
-                          <p className="text-gray-500 text-sm truncate">{track.artist}</p>
-                        </div>
-
-                        {/* Metrics */}
-                        <div className="flex items-center gap-4 text-sm flex-shrink-0">
-                          <div className="text-center">
-                            <div className="text-gray-300 font-mono">{formatDuration(track.duration)}</div>
-                            <div className="text-gray-600 text-xs">Duration</div>
-                          </div>
-                          {track.bpm != null && (
-                            <div className="text-center">
-                              <div className="text-purple-400 font-semibold">{track.bpm}</div>
-                              <div className="text-gray-600 text-xs">BPM</div>
-                            </div>
-                          )}
-                          {track.key && (
-                            <div className="text-center">
-                              <div className="text-red-400 font-semibold">{track.key}</div>
-                              <div className="text-gray-600 text-xs">Key</div>
-                            </div>
-                          )}
-                          {track.energy != null && (
-                            <div className="text-center">
-                              <div className="text-blue-400 font-semibold">{track.energy}/10</div>
-                              <div className="text-gray-600 text-xs">Energy</div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Delete */}
-                        <button
-                          onClick={() => handleDeleteTrack(track.id)}
-                          className="p-2 text-gray-600 hover:text-red-400 transition-colors flex-shrink-0"
-                          title="Remove from library"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Right: Setlist Panel (slides in) */}
+        {/* Track Library */}
+        <div>
+          {/* Upload Drop Zone */}
           <div
-            className={`transition-all duration-300 overflow-hidden ${
-              showSetlist ? 'w-96 opacity-100' : 'w-0 opacity-0'
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={() => setDragOver(false)}
+            onClick={() => fileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all mb-6 ${
+              dragOver
+                ? 'border-purple-500 bg-purple-500/10'
+                : 'border-gray-700/50 hover:border-gray-600 bg-gray-900/40'
             }`}
           >
-            <div className="w-96 bg-gray-900/80 rounded-xl border border-gray-700/50 p-6 sticky top-24">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-white">Your Setlist</h2>
-                <button
-                  onClick={() => setShowSetlist(false)}
-                  className="text-gray-500 hover:text-white transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+            {uploading ? (
+              <div className="flex flex-col items-center gap-3">
+                <Loader2 className="w-10 h-10 text-purple-500 animate-spin" />
+                <p className="text-gray-400">{uploadProgress || 'Analyzing...'}</p>
               </div>
-
-              {/* Metrics */}
-              <div className="grid grid-cols-3 gap-2 mb-4">
-                <div className="bg-gray-950 rounded-lg p-3 border border-gray-700/40 text-center">
-                  <Clock className="w-4 h-4 text-blue-500 mx-auto mb-1" />
-                  <div className="text-white font-semibold text-sm">
-                    {formatTotalDuration(currentSetlist?.totalDuration || 0)}
-                  </div>
-                  <div className="text-gray-600 text-xs">Duration</div>
-                </div>
-                <div className="bg-gray-950 rounded-lg p-3 border border-gray-700/40 text-center">
-                  <Zap className="w-4 h-4 text-purple-500 mx-auto mb-1" />
-                  <div className="text-white font-semibold text-sm">
-                    {calculateAverageBPM(setlistTracks)}
-                  </div>
-                  <div className="text-gray-600 text-xs">Avg BPM</div>
-                </div>
-                <div className="bg-gray-950 rounded-lg p-3 border border-gray-700/40 text-center">
-                  <TrendingUp className="w-4 h-4 text-red-500 mx-auto mb-1" />
-                  <div className="text-white font-semibold text-sm">
-                    {calculateAverageEnergy(setlistTracks)}/10
-                  </div>
-                  <div className="text-gray-600 text-xs">Energy</div>
-                </div>
+            ) : (
+              <div className="flex flex-col items-center gap-3">
+                <Upload className="w-10 h-10 text-gray-600" />
+                <p className="text-gray-400 font-medium">
+                  Drop audio files here or click to browse
+                </p>
+                <p className="text-gray-600 text-sm">MP3, WAV, FLAC up to 50MB</p>
               </div>
+            )}
+          </div>
 
-              {/* Setlist Tracks */}
-              {setlistTracks.length === 0 ? (
-                <div className="text-center py-8 border-2 border-dashed border-gray-800 rounded-lg">
-                  <Plus className="w-8 h-8 text-gray-700 mx-auto mb-2" />
-                  <p className="text-gray-600 text-sm">Add tracks from your library</p>
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-                  {setlistTracks.map((track, index) => (
+          {/* Your Songs */}
+          <div>
+            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+              <FileAudio className="w-5 h-5 text-purple-500" />
+              Your Songs
+              {library.length > 0 && (
+                <span className="text-gray-500 text-sm font-normal">({library.length})</span>
+              )}
+            </h2>
+
+            {library.length === 0 && !uploading ? (
+              <div className="text-center py-12 bg-gray-900/40 rounded-xl border border-gray-800/50">
+                <Music className="w-12 h-12 text-gray-700 mx-auto mb-3" />
+                <p className="text-gray-500">No songs yet. Import some tracks to get started.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {library.map((track) => {
+                  const isInSetlist = setlistTracks.some(t => t.id === track.id);
+                  const isPlaying = playingTrackId === track.id;
+                  return (
                     <div
-                      key={`${track.id}-${index}`}
-                      className="bg-gray-950/80 rounded-lg p-3 border border-gray-700/30 flex items-center gap-3"
+                      key={track.id}
+                      className={`bg-gray-900/80 rounded-lg p-4 border transition-colors flex items-center gap-4 ${
+                        isPlaying
+                          ? 'border-purple-500/50 bg-purple-950/20'
+                          : 'border-gray-700/30 hover:border-gray-700/50'
+                      }`}
                     >
-                      <span className="text-gray-600 font-mono text-sm w-6 text-center flex-shrink-0">
-                        {index + 1}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-white text-sm font-medium truncate">{track.title}</p>
-                        <p className="text-gray-500 text-xs truncate">{track.artist}</p>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs flex-shrink-0">
-                        {track.bpm != null && <span className="text-purple-400">{track.bpm}</span>}
-                        {track.key && <span className="text-red-400">{track.key}</span>}
-                        {track.energy != null && <span className="text-blue-400">{track.energy}</span>}
-                      </div>
+                      {/* Play/Pause Button */}
+                      {track.source === 'local' || track.previewUrl ? (
+                        <button
+                          onClick={() => handlePlayPause(track)}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
+                            isPlaying
+                              ? 'bg-purple-500 text-white'
+                              : 'bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white'
+                          }`}
+                          title={isPlaying ? 'Pause' : 'Play'}
+                        >
+                          {isPlaying ? (
+                            <Pause className="w-4 h-4" />
+                          ) : (
+                            <Play className="w-4 h-4 ml-0.5" />
+                          )}
+                        </button>
+                      ) : (
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-gray-800/50 text-gray-600 cursor-not-allowed"
+                          title="No preview available"
+                        >
+                          <Play className="w-4 h-4 ml-0.5" />
+                        </div>
+                      )}
+
+                      {/* Add Button */}
                       <button
-                        onClick={() => removeTrackFromSetlist(track.id)}
-                        className="p-1 text-gray-600 hover:text-red-400 transition-colors flex-shrink-0"
+                        onClick={() => handleAddToSetlist(track)}
+                        disabled={isInSetlist}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
+                          isInSetlist
+                            ? 'bg-green-500/20 text-green-400 cursor-default'
+                            : 'bg-purple-600 hover:bg-purple-500 text-white'
+                        }`}
+                        title={isInSetlist ? 'Already in setlist' : 'Add to setlist'}
                       >
-                        <X className="w-3 h-3" />
+                        {isInSetlist ? (
+                          <span className="text-xs font-bold">&#10003;</span>
+                        ) : (
+                          <Plus className="w-4 h-4" />
+                        )}
+                      </button>
+
+                      {/* Track Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-white font-semibold truncate">{track.title}</h3>
+                          {track.source === 'local' ? (
+                            <span className="flex items-center gap-1 px-1.5 py-0.5 bg-purple-500/10 border border-purple-500/20 rounded text-[10px] text-purple-400 flex-shrink-0" title="Local file">
+                              <HardDrive className="w-2.5 h-2.5" />
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 px-1.5 py-0.5 bg-pink-500/10 border border-pink-500/20 rounded text-[10px] text-pink-400 flex-shrink-0" title="iTunes search">
+                              <Globe className="w-2.5 h-2.5" />
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-gray-500 text-sm truncate">{track.artist}</p>
+                      </div>
+
+                      {/* Metrics */}
+                      <div className="flex items-center gap-4 text-sm flex-shrink-0">
+                        <div className="text-center">
+                          <div className="text-gray-300 font-mono">{formatDuration(track.duration)}</div>
+                          <div className="text-gray-600 text-xs">Duration</div>
+                        </div>
+                        {track.bpm != null && (
+                          <div className="text-center">
+                            <div className="text-purple-400 font-semibold">{track.bpm}</div>
+                            <div className="text-gray-600 text-xs">BPM</div>
+                          </div>
+                        )}
+                        {track.key && (
+                          <div className="text-center">
+                            <div className="text-red-400 font-semibold">{track.key}</div>
+                            <div className="text-gray-600 text-xs">Key</div>
+                          </div>
+                        )}
+                        {track.energy != null && (
+                          <div className="text-center">
+                            <div className="text-blue-400 font-semibold">{track.energy}/10</div>
+                            <div className="text-gray-600 text-xs">Energy</div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Delete */}
+                      <button
+                        onClick={() => handleDeleteTrack(track.id)}
+                        className="p-2 text-gray-600 hover:text-red-400 transition-colors flex-shrink-0"
+                        title="Remove from library"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Track count */}
-              {setlistTracks.length > 0 && (
-                <p className="text-gray-600 text-xs mt-3 text-center">
-                  {setlistTracks.length} track{setlistTracks.length !== 1 ? 's' : ''}
-                </p>
-              )}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>

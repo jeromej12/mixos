@@ -47,6 +47,19 @@ code {
   animation: slideInRight 0.35s ease-out forwards;
 }
 
+@keyframes panelSlideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: panelSlideIn 0.25s ease-out forwards;
+}
+
 /* Rotating gradient border */
 @keyframes borderRotate {
   0% { --border-angle: 0deg; }

@@ -1,6 +1,6 @@
 import os
 from anthropic import Anthropic
-from typing import List, Optional
+from typing import Optional
 import json
 
 class AIService:

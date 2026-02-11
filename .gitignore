@@ -26,6 +26,11 @@ yarn-error.log*
 dist/
 .cache/
 
+# Uploads
+backend/uploads/*.mp3
+backend/uploads/*.wav
+backend/uploads/*.flac
+
 # OS
 .DS_Store
 Thumbs.db

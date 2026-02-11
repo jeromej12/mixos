@@ -1,6 +1,9 @@
-import React, { useState, useRef } from 'react';
-import { Music, Zap, TrendingUp, Clock, Disc, Sparkles, Send, AlertCircle, History, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Music, Zap, TrendingUp, Clock, Disc, Sparkles, Send, AlertCircle, History, ChevronLeft, ChevronRight, Plus, Check, Play, Pause, Loader2, X } from 'lucide-react';
 import { api } from '../services/api';
+import { useSetlistStore } from '../store/setlistStore';
+import { convertAITrack } from '../utils/convertAITrack';
+import { Track } from '../types';
 
 interface AITrack {
   title: string;
@@ -25,6 +28,12 @@ interface AIPlaylist {
   transition_notes: string[];
 }
 
+interface PreviewData {
+  previewUrl: string;
+  albumArt?: string;
+  duration?: number;
+}
+
 interface VersionEntry {
   playlists: AIPlaylist[];
   label: string;
@@ -33,9 +42,13 @@ interface VersionEntry {
 interface AIResultsProps {
   playlists: AIPlaylist[];
   onBack: () => void;
+  onShowSetlist?: () => void;
 }
 
-export const AIResults: React.FC<AIResultsProps> = ({ playlists: initialPlaylists, onBack }) => {
+const trackKey = (t: { title: string; artist: string }) =>
+  `${t.title.toLowerCase()}|${t.artist.toLowerCase()}`;
+
+export const AIResults: React.FC<AIResultsProps> = ({ playlists: initialPlaylists, onBack, onShowSetlist }) => {
   const [playlists, setPlaylists] = useState<AIPlaylist[]>(initialPlaylists);
   const [refinement, setRefinement] = useState('');
   const [isRefining, setIsRefining] = useState(false);
@@ -48,6 +61,165 @@ export const AIResults: React.FC<AIResultsProps> = ({ playlists: initialPlaylist
   const [showHistory, setShowHistory] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // Preview fetching state
+  const [previews, setPreviews] = useState<Record<string, PreviewData>>({});
+  const [fetchingPreviews, setFetchingPreviews] = useState<Set<string>>(new Set());
+
+  // Audio playback state
+  const [playingKey, setPlayingKey] = useState<string | null>(null);
+  const [playbackProgress, setPlaybackProgress] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const { currentSetlist, addTrackToSetlist, addTracksToSetlist } = useSetlistStore();
+  const setlistTracks = currentSetlist?.tracks || [];
+
+  // Setup audio element
+  useEffect(() => {
+    audioRef.current = new Audio();
+    audioRef.current.addEventListener('ended', () => {
+      setPlayingKey(null);
+      setPlaybackProgress(0);
+    });
+    audioRef.current.addEventListener('timeupdate', () => {
+      const audio = audioRef.current;
+      if (audio && audio.duration) {
+        setPlaybackProgress((audio.currentTime / audio.duration) * 100);
+      }
+    });
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  // Fetch iTunes previews for all tracks in current playlists
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchAll = async () => {
+      const allTracks = playlists.flatMap(p => p.tracks);
+      // Dedupe and skip already-fetched
+      const toFetch = allTracks.filter(t => {
+        const key = trackKey(t);
+        return !previews[key] && !fetchingPreviews.has(key);
+      });
+
+      // Deduplicate by key
+      const seen = new Set<string>();
+      const unique = toFetch.filter(t => {
+        const key = trackKey(t);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      for (const track of unique) {
+        if (cancelled) break;
+        const key = trackKey(track);
+
+        setFetchingPreviews(prev => new Set(prev).add(key));
+
+        try {
+          const results = await api.searchTracks(`${track.title} ${track.artist}`);
+          if (cancelled) break;
+
+          // Find best match - check if title/artist roughly matches
+          const match = results.find((r: Track) =>
+            r.title.toLowerCase().includes(track.title.toLowerCase().split('(')[0].trim()) ||
+            track.title.toLowerCase().includes(r.title.toLowerCase().split('(')[0].trim())
+          ) || results[0];
+
+          if (match?.previewUrl) {
+            setPreviews(prev => ({
+              ...prev,
+              [key]: {
+                previewUrl: match.previewUrl!,
+                albumArt: match.albumArt,
+                duration: match.duration,
+              }
+            }));
+          }
+        } catch {
+          // Silently skip failed lookups
+        }
+
+        setFetchingPreviews(prev => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+
+        // Small delay between requests
+        if (!cancelled) {
+          await new Promise(r => setTimeout(r, 300));
+        }
+      }
+    };
+
+    fetchAll();
+    return () => { cancelled = true; };
+  }, [playlists]);
+
+  const handlePlayPause = useCallback((track: AITrack) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const key = trackKey(track);
+    const preview = previews[key];
+    if (!preview?.previewUrl) return;
+
+    if (playingKey === key) {
+      audio.pause();
+      setPlayingKey(null);
+    } else {
+      audio.src = preview.previewUrl;
+      audio.play();
+      setPlayingKey(key);
+      setPlaybackProgress(0);
+    }
+  }, [playingKey, previews]);
+
+  const isTrackInSetlist = (aiTrack: AITrack) => {
+    return setlistTracks.some(
+      t => t.title.toLowerCase() === aiTrack.title.toLowerCase() &&
+           t.artist.toLowerCase() === aiTrack.artist.toLowerCase()
+    );
+  };
+
+  const handleAddTrack = (aiTrack: AITrack) => {
+    if (isTrackInSetlist(aiTrack)) return;
+    const converted = convertAITrack(aiTrack);
+    // Enrich with preview data if available
+    const preview = previews[trackKey(aiTrack)];
+    if (preview) {
+      converted.previewUrl = preview.previewUrl;
+      converted.albumArt = preview.albumArt;
+      if (preview.duration) converted.duration = preview.duration;
+    }
+    addTrackToSetlist(converted);
+  };
+
+  const handleUseTemplate = (playlist: AIPlaylist) => {
+    const newTracks = playlist.tracks
+      .filter(t => !isTrackInSetlist(t))
+      .map(t => {
+        const converted = convertAITrack(t);
+        const preview = previews[trackKey(t)];
+        if (preview) {
+          converted.previewUrl = preview.previewUrl;
+          converted.albumArt = preview.albumArt;
+          if (preview.duration) converted.duration = preview.duration;
+        }
+        return converted;
+      });
+    if (newTracks.length > 0) {
+      addTracksToSetlist(newTracks);
+    }
+    onShowSetlist?.();
+  };
+
   const handleRefine = async () => {
     if (!refinement.trim()) return;
 
@@ -57,15 +229,12 @@ export const AIResults: React.FC<AIResultsProps> = ({ playlists: initialPlaylist
     try {
       const result = await api.refineSetlist(refinement, { playlists });
 
-      // Slide out old content
       setAnimationClass('slide-out-left');
 
-      // After slide-out, update content and slide in
       setTimeout(() => {
         const newPlaylists = result.playlists;
         setPlaylists(newPlaylists);
 
-        // Add to history (trim any forward history if we refined from a past version)
         const newHistory = [
           ...history.slice(0, currentVersion + 1),
           { playlists: newPlaylists, label: refinement }
@@ -76,7 +245,6 @@ export const AIResults: React.FC<AIResultsProps> = ({ playlists: initialPlaylist
         setAnimationClass('slide-in-right');
         setRefinement('');
 
-        // Scroll to top
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
         setTimeout(() => setAnimationClass(''), 350);
@@ -90,9 +258,8 @@ export const AIResults: React.FC<AIResultsProps> = ({ playlists: initialPlaylist
 
   const goToVersion = (index: number) => {
     if (index === currentVersion) return;
-    const goingBack = index < currentVersion;
 
-    setAnimationClass(goingBack ? 'slide-out-left' : 'slide-out-left');
+    setAnimationClass('slide-out-left');
     setTimeout(() => {
       setPlaylists(history[index].playlists);
       setCurrentVersion(index);
@@ -119,6 +286,9 @@ export const AIResults: React.FC<AIResultsProps> = ({ playlists: initialPlaylist
     };
     return colors[position.toLowerCase()] || 'bg-gray-500/10 text-gray-400 border-gray-500/20';
   };
+
+  const nowPlayingTrack = playlists.flatMap(p => p.tracks).find(t => trackKey(t) === playingKey);
+  const nowPlayingPreview = playingKey ? previews[playingKey] : null;
 
   return (
     <div className="min-h-screen bg-black p-8 pb-36">
@@ -284,48 +454,110 @@ export const AIResults: React.FC<AIResultsProps> = ({ playlists: initialPlaylist
                   Track Suggestions ({playlist.tracks.length})
                 </h3>
                 <div className="space-y-3">
-                  {playlist.tracks.map((track, trackIdx) => (
-                    <div
-                      key={trackIdx}
-                      className="bg-gray-950/80 rounded-lg p-4 hover:bg-gray-800/40 border border-gray-700/30 hover:border-gray-700/50 transition-colors"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-1">
-                            <span className="text-gray-600 font-mono text-sm">{String(trackIdx + 1).padStart(2, '0')}</span>
-                            <h4 className="text-white font-semibold">{track.title}</h4>
-                            {track.position && (
-                              <span className={`px-2 py-0.5 rounded-full text-xs border ${getPositionColor(track.position)}`}>
-                                {track.position}
-                              </span>
+                  {playlist.tracks.map((track, trackIdx) => {
+                    const added = isTrackInSetlist(track);
+                    const key = trackKey(track);
+                    const preview = previews[key];
+                    const isFetching = fetchingPreviews.has(key);
+                    const isPlaying = playingKey === key;
+                    return (
+                      <div
+                        key={trackIdx}
+                        className={`bg-gray-950/80 rounded-lg p-4 hover:bg-gray-800/40 border transition-colors ${
+                          isPlaying
+                            ? 'border-purple-500/50 bg-purple-950/20'
+                            : 'border-gray-700/30 hover:border-gray-700/50'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1 flex items-start gap-3">
+                            {/* Play/Pause Button */}
+                            {preview?.previewUrl ? (
+                              <button
+                                onClick={() => handlePlayPause(track)}
+                                className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
+                                  isPlaying
+                                    ? 'bg-purple-500 text-white'
+                                    : 'bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white'
+                                }`}
+                                title={isPlaying ? 'Pause' : 'Preview'}
+                              >
+                                {isPlaying ? (
+                                  <Pause className="w-3.5 h-3.5" />
+                                ) : (
+                                  <Play className="w-3.5 h-3.5 ml-0.5" />
+                                )}
+                              </button>
+                            ) : isFetching ? (
+                              <div className="mt-0.5 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-gray-800/50">
+                                <Loader2 className="w-3.5 h-3.5 text-gray-500 animate-spin" />
+                              </div>
+                            ) : (
+                              <div className="mt-0.5 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-gray-800/30 text-gray-700">
+                                <Play className="w-3.5 h-3.5 ml-0.5" />
+                              </div>
+                            )}
+
+                            {/* Album Art */}
+                            {preview?.albumArt ? (
+                              <img src={preview.albumArt} alt="" className="w-10 h-10 rounded-md flex-shrink-0 mt-0.5" />
+                            ) : null}
+
+                            {/* Add to setlist button */}
+                            <button
+                              onClick={() => handleAddTrack(track)}
+                              disabled={added}
+                              className={`mt-0.5 w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
+                                added
+                                  ? 'bg-green-500/20 text-green-400 cursor-default'
+                                  : 'bg-purple-600 hover:bg-purple-500 text-white'
+                              }`}
+                              title={added ? 'Already in setlist' : 'Add to setlist'}
+                            >
+                              {added ? (
+                                <Check className="w-3.5 h-3.5" />
+                              ) : (
+                                <Plus className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                            <div>
+                              <div className="flex items-center gap-3 mb-1">
+                                <span className="text-gray-600 font-mono text-sm">{String(trackIdx + 1).padStart(2, '0')}</span>
+                                <h4 className="text-white font-semibold">{track.title}</h4>
+                                {track.position && (
+                                  <span className={`px-2 py-0.5 rounded-full text-xs border ${getPositionColor(track.position)}`}>
+                                    {track.position}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-gray-500 text-sm ml-8">{track.artist}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4 text-sm">
+                            {track.bpm != null && (
+                              <div className="text-center">
+                                <div className="text-purple-400 font-semibold">{track.bpm}</div>
+                                <div className="text-gray-600 text-xs">BPM</div>
+                              </div>
+                            )}
+                            {track.key && (
+                              <div className="text-center">
+                                <div className="text-red-400 font-semibold">{track.key}</div>
+                                <div className="text-gray-600 text-xs">Key</div>
+                              </div>
+                            )}
+                            {track.energy != null && (
+                              <div className="text-center">
+                                <div className="text-blue-400 font-semibold">{track.energy}/10</div>
+                                <div className="text-gray-600 text-xs">Energy</div>
+                              </div>
                             )}
                           </div>
-                          <p className="text-gray-500 text-sm ml-8">{track.artist}</p>
                         </div>
-                        <div className="flex items-center gap-4 text-sm">
-                          {track.bpm != null && (
-                            <div className="text-center">
-                              <div className="text-purple-400 font-semibold">{track.bpm}</div>
-                              <div className="text-gray-600 text-xs">BPM</div>
-                            </div>
-                          )}
-                          {track.key && (
-                            <div className="text-center">
-                              <div className="text-red-400 font-semibold">{track.key}</div>
-                              <div className="text-gray-600 text-xs">Key</div>
-                            </div>
-                          )}
-                          {track.energy != null && (
-                            <div className="text-center">
-                              <div className="text-blue-400 font-semibold">{track.energy}/10</div>
-                              <div className="text-gray-600 text-xs">Energy</div>
-                            </div>
-                          )}
-                        </div>
+                        {track.reasoning && <p className="text-gray-500 text-sm italic ml-10">{track.reasoning}</p>}
                       </div>
-                      {track.reasoning && <p className="text-gray-500 text-sm italic ml-8">{track.reasoning}</p>}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -347,7 +579,11 @@ export const AIResults: React.FC<AIResultsProps> = ({ playlists: initialPlaylist
 
               {/* Action Button */}
               <div className="mt-6 pt-6 border-t border-gray-800">
-                <button className="w-full py-3 bg-gradient-to-r from-purple-600 via-red-600 to-blue-600 hover:from-purple-500 hover:via-red-500 hover:to-blue-500 rounded-lg text-white font-semibold transition-all">
+                <button
+                  onClick={() => handleUseTemplate(playlist)}
+                  className="w-full py-3 bg-gradient-to-r from-purple-600 via-red-600 to-blue-600 hover:from-purple-500 hover:via-red-500 hover:to-blue-500 rounded-lg text-white font-semibold transition-all flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-5 h-5" />
                   Use This Setlist Template
                 </button>
               </div>
@@ -356,6 +592,48 @@ export const AIResults: React.FC<AIResultsProps> = ({ playlists: initialPlaylist
           ))}
         </div>
       </div>
+
+      {/* Floating Mini Player */}
+      {nowPlayingTrack && (
+        <div className="fixed bottom-20 left-6 z-50 w-72 bg-gray-900/95 backdrop-blur-lg border border-gray-700/50 rounded-xl shadow-xl shadow-black/40 overflow-hidden">
+          {/* Progress bar */}
+          <div className="h-1 bg-gray-800">
+            <div
+              className="h-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all duration-200"
+              style={{ width: `${playbackProgress}%` }}
+            />
+          </div>
+          <div className="p-3 flex items-center gap-3">
+            {nowPlayingPreview?.albumArt ? (
+              <img src={nowPlayingPreview.albumArt} alt="" className="w-10 h-10 rounded-lg flex-shrink-0" />
+            ) : (
+              <div className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center flex-shrink-0">
+                <Music className="w-5 h-5 text-gray-600" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-medium text-sm truncate">{nowPlayingTrack.title}</p>
+              <p className="text-gray-500 text-xs truncate">{nowPlayingTrack.artist}</p>
+            </div>
+            <button
+              onClick={() => handlePlayPause(nowPlayingTrack)}
+              className="w-8 h-8 bg-purple-500 hover:bg-purple-400 rounded-full flex items-center justify-center text-white transition-colors flex-shrink-0"
+            >
+              <Pause className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => {
+                audioRef.current?.pause();
+                setPlayingKey(null);
+                setPlaybackProgress(0);
+              }}
+              className="p-1 text-gray-500 hover:text-white transition-colors flex-shrink-0"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Fixed Refinement Bar */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-950/95 backdrop-blur-lg border-t border-gray-700/50">

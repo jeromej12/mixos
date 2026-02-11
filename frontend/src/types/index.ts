@@ -9,8 +9,10 @@ export interface Track {
   energy?: number; // 1-10 scale
   duration: number; // seconds
   genre?: string;
-  source: 'local' | 'itunes';
+  source: 'local' | 'itunes' | 'ai';
   previewUrl?: string;
+  position?: string;
+  reasoning?: string;
 }
 
 export interface Setlist {
@@ -19,9 +21,7 @@ export interface Setlist {
   description?: string;
   tracks: Track[];
   totalDuration: number;
-  averageBPM?: number;
   createdAt: Date;
-  tags?: string[];
 }
 
 export interface SearchResult {
