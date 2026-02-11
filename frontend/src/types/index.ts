@@ -9,25 +9,8 @@ export interface Track {
   energy?: number; // 1-10 scale
   duration: number; // seconds
   genre?: string;
-  source: 'spotify' | 'local';
-  spotifyId?: string;
+  source: 'local' | 'itunes';
   previewUrl?: string;
-  audioFeatures?: SpotifyAudioFeatures;
-}
-
-export interface SpotifyAudioFeatures {
-  danceability: number;
-  energy: number;
-  key: number;
-  loudness: number;
-  mode: number;
-  speechiness: number;
-  acousticness: number;
-  instrumentalness: number;
-  liveness: number;
-  valence: number;
-  tempo: number;
-  timeSignature: number;
 }
 
 export interface Setlist {
@@ -41,7 +24,7 @@ export interface Setlist {
   tags?: string[];
 }
 
-export interface SpotifySearchResult {
+export interface SearchResult {
   tracks: Track[];
   total: number;
 }

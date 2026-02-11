@@ -289,8 +289,8 @@ export const LandingPage: React.FC<{ onNavigate: (view: string) => void }> = ({ 
               <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center mx-auto mb-3">
                 <Music className="w-6 h-6 text-purple-500" />
               </div>
-              <h4 className="text-white font-semibold mb-1">Spotify Integration</h4>
-              <p className="text-gray-500 text-sm">Access millions of tracks</p>
+              <h4 className="text-white font-semibold mb-1">Song Search</h4>
+              <p className="text-gray-500 text-sm">Search and preview tracks</p>
             </div>
             <div className="text-center">
               <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center mx-auto mb-3">

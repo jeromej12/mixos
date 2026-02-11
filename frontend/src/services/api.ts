@@ -1,4 +1,4 @@
-import { Track, SpotifySearchResult } from '../types';
+import { Track, SearchResult } from '../types';
 
 const API_BASE_URL = '/api';
 
@@ -7,7 +7,7 @@ export const api = {
   searchTracks: async (query: string): Promise<Track[]> => {
     const response = await fetch(`${API_BASE_URL}/itunes/search?q=${encodeURIComponent(query)}`);
     if (!response.ok) throw new Error('Search failed');
-    const data: SpotifySearchResult = await response.json();
+    const data: SearchResult = await response.json();
     return data.tracks;
   },
 
@@ -35,12 +35,12 @@ export const api = {
         target_duration: targetDuration
       })
     });
-    
+
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.detail || 'AI generation failed');
     }
-    
+
     return response.json();
   },
 

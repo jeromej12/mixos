@@ -2,11 +2,11 @@
 
 A modern, AI-powered DJ setlist management application with audio analysis, song search, and professional mixing tools.
 
-## Phase 1 Features (Complete)
+## Features
 
 - React + TypeScript frontend with Tailwind CSS
-- FastAPI backend with Spotify integration
-- Search tracks via Spotify API
+- FastAPI backend with audio analysis
+- Search tracks via iTunes/Apple Music API
 - Display track information (title, artist, album, BPM, key)
 - Camelot wheel key notation
 - Energy level analysis
@@ -21,20 +21,15 @@ A modern, AI-powered DJ setlist management application with audio analysis, song
 - **AI setlist refinement** — refine generated setlists with follow-up prompts
   - Slide animation when setlist updates
   - Version history with ability to revert to any previous version
-
-## Phase 2 Features (Complete)
-
 - **Manual setlist builder** — upload local files or search songs to build setlists by hand
 - **Local audio file upload** — drag-and-drop or file picker for MP3, WAV, FLAC
 - **Audio analysis with Essentia** — professional-grade BPM, key (Camelot), and energy detection
   - RhythmExtractor2013 multi-feature BPM detection with octave correction
   - KeyExtractor with HPCP for accurate key detection in Camelot notation
-  - Energy analysis mapped to 1–10 scale
+  - Energy analysis mapped to 1-10 scale
 - **iTunes/Apple Music search** — free song search with 30-second preview playback
   - Preview clips analyzed with Essentia for BPM/key/energy
   - In-browser audio playback for previews and local files
-- **Spotify search** — search the Spotify catalog (optional, requires credentials)
-  - Spotify lookup for uploaded local files to match metadata
 - **Smart metadata extraction** — reads ID3/Vorbis/FLAC tags via Mutagen, falls back to filename parsing
 - **Interactive setlist panel** — slide-in panel with drag-to-add tracks, aggregate metrics (duration, avg BPM, avg energy)
 
@@ -44,7 +39,6 @@ A modern, AI-powered DJ setlist management application with audio analysis, song
 - Python 3.10+
 - FFmpeg (`brew install ffmpeg` on macOS)
 - Anthropic API key (for AI generation)
-- Spotify Developer Account (optional, for Spotify search)
 
 ## Quick Start
 
@@ -53,10 +47,6 @@ A modern, AI-powered DJ setlist management application with audio analysis, song
 **Anthropic (required):**
 1. Go to [Anthropic Console](https://console.anthropic.com)
 2. Create an API key
-
-**Spotify (optional):**
-1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-2. Create an app and copy your **Client ID** and **Client Secret**
 
 ### 2. Backend Setup
 
@@ -73,10 +63,8 @@ pip install -r requirements.txt
 # Create .env file
 cp .env.example .env
 
-# Edit .env and add your credentials:
+# Edit .env and add your Anthropic API key:
 # ANTHROPIC_API_KEY=your_anthropic_key
-# SPOTIFY_CLIENT_ID=your_client_id       (optional)
-# SPOTIFY_CLIENT_SECRET=your_client_secret (optional)
 
 # Run the backend
 uvicorn app.main:app --host 0.0.0.0 --port 8000
@@ -118,10 +106,7 @@ mixos/
 │   │   ├── components/
 │   │   │   ├── LandingPage.tsx      # Home page with AI generator + manual build
 │   │   │   ├── AIResults.tsx        # Generated setlist display, refinement, version history
-│   │   │   ├── ManualBuilder.tsx    # Manual setlist builder with upload + search
-│   │   │   ├── Dashboard.tsx        # Overview dashboard
-│   │   │   ├── TrackSearch.tsx      # Track search
-│   │   │   └── TrackCard.tsx        # Track display card
+│   │   │   └── ManualBuilder.tsx    # Manual setlist builder with upload + search
 │   │   ├── services/api.ts         # Backend API calls
 │   │   ├── store/                   # Zustand state management
 │   │   ├── types/                   # TypeScript types
@@ -133,17 +118,15 @@ mixos/
 │   ├── app/
 │   │   ├── routers/
 │   │   │   ├── ai.py               # AI generation + refinement endpoints
-│   │   │   ├── spotify.py          # Spotify search endpoints
 │   │   │   ├── itunes.py           # iTunes/Apple Music search + analysis
 │   │   │   └── tracks.py           # Local file upload, library, audio streaming
 │   │   ├── services/
 │   │   │   ├── ai_service.py       # Claude API integration, prompt building
-│   │   │   ├── spotify_service.py  # Spotify API client
 │   │   │   ├── itunes_service.py   # iTunes search + Essentia preview analysis
 │   │   │   └── audio_service.py    # Local file analysis + metadata extraction
 │   │   ├── models/
 │   │   │   ├── ai_schemas.py       # AI request/response models
-│   │   │   └── schemas.py          # Track, Setlist, and shared data models
+│   │   │   └── schemas.py          # Track and shared data models
 │   │   └── main.py                 # FastAPI app
 │   ├── uploads/                     # Uploaded audio files (git-ignored)
 │   ├── requirements.txt
@@ -157,8 +140,6 @@ mixos/
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/health` | GET | Health check |
-| `/api/spotify/search?q={query}` | GET | Search Spotify tracks |
-| `/api/spotify/track/{id}` | GET | Get Spotify track details |
 | `/api/itunes/search?q={query}` | GET | Search iTunes/Apple Music |
 | `/api/itunes/analyze` | POST | Analyze track preview for BPM/key/energy |
 | `/api/tracks/upload` | POST | Upload and analyze a local audio file |
@@ -182,24 +163,15 @@ mixos/
 - Python 3.10+, FastAPI, Uvicorn
 - Anthropic Claude API (AI setlist generation)
 - Essentia (professional audio analysis — BPM, key, energy)
-- Spotipy (Spotify integration)
 - Mutagen (audio metadata / ID3 tag reading)
 - Pydub + FFmpeg (audio format handling)
 - Pydantic for data validation
 - iTunes Search API (free, no auth required)
 
-## Roadmap
-
-Phases 1–2 deliver AI generation and manual building. Upcoming:
-- **Phase 3**: Drag-and-drop reordering, BPM transition visualization
-- **Phase 4**: Camelot wheel harmonic mixing recommendations
-- **Phase 5**: Export/import, sharing, and templates
-- **Phase 6**: Mobile support and cloud sync
-
 ## Troubleshooting
 
 **Backend won't start:**
-- Make sure you've added credentials to `backend/.env`
+- Make sure you've added your Anthropic API key to `backend/.env`
 - Check that port 8000 is not in use
 - Ensure FFmpeg is installed (`brew install ffmpeg`)
 
@@ -210,11 +182,10 @@ Phases 1–2 deliver AI generation and manual building. Upcoming:
 **Audio analysis issues:**
 - Ensure Essentia is installed (`pip install essentia`)
 - Ensure FFmpeg is installed for MP3/M4A support
-- Python 3.10+ is required (Essentia supports 3.10–3.13)
+- Python 3.10+ is required (Essentia supports 3.10-3.13)
 
 **Song search returns no results:**
 - iTunes search requires no credentials and should work out of the box
-- For Spotify search, verify credentials are correct and restart the server
 
 **Frontend can't connect:**
 - Ensure the backend is running on port 8000

@@ -18,10 +18,10 @@ export const ManualBuilder: React.FC = () => {
   const [showSetlist, setShowSetlist] = useState(false);
   const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
   const [playbackProgress, setPlaybackProgress] = useState(0);
-  const [showSpotifySearch, setShowSpotifySearch] = useState(false);
-  const [spotifyQuery, setSpotifyQuery] = useState('');
-  const [spotifyResults, setSpotifyResults] = useState<Track[]>([]);
-  const [searchingSpotify, setSearchingSpotify] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Track[]>([]);
+  const [searching, setSearching] = useState(false);
   const [analyzingTrackId, setAnalyzingTrackId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -147,24 +147,24 @@ export const ManualBuilder: React.FC = () => {
     }
   }, [playingTrackId]);
 
-  const handleSpotifySearch = async () => {
-    if (!spotifyQuery.trim()) return;
-    setSearchingSpotify(true);
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    setSearching(true);
     setError(null);
     try {
-      const results = await api.searchTracks(spotifyQuery);
-      setSpotifyResults(results);
+      const results = await api.searchTracks(searchQuery);
+      setSearchResults(results);
     } catch (err: any) {
       setError(`Search failed: ${err.message}`);
     }
-    setSearchingSpotify(false);
+    setSearching(false);
   };
 
-  const handleSpotifySearchKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleSpotifySearch();
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleSearch();
   };
 
-  const handleAddSpotifyTrack = async (track: Track) => {
+  const handleAddSearchTrack = async (track: Track) => {
     setAnalyzingTrackId(track.id);
     try {
       // Analyze preview for BPM/key/energy
@@ -178,7 +178,7 @@ export const ManualBuilder: React.FC = () => {
   };
 
   const setlistTracks = currentSetlist?.tracks || [];
-  const allTracks = [...library, ...spotifyResults];
+  const allTracks = [...library, ...searchResults];
   const nowPlaying = allTracks.find(t => t.id === playingTrackId);
 
   return (
@@ -196,9 +196,9 @@ export const ManualBuilder: React.FC = () => {
             Import Local Files
           </button>
           <button
-            onClick={() => setShowSpotifySearch(!showSpotifySearch)}
+            onClick={() => setShowSearch(!showSearch)}
             className={`flex items-center gap-3 px-6 py-3 rounded-xl font-semibold transition-all ${
-              showSpotifySearch
+              showSearch
                 ? 'bg-pink-600 hover:bg-pink-500 text-white'
                 : 'bg-gray-900 border border-gray-700/50 hover:border-gray-600 text-gray-300 hover:text-white'
             }`}
@@ -227,24 +227,24 @@ export const ManualBuilder: React.FC = () => {
           </div>
         )}
 
-        {/* Spotify Search Panel */}
-        {showSpotifySearch && (
+        {/* Search Panel */}
+        {showSearch && (
           <div className="mb-6 bg-gray-900/80 rounded-xl border border-gray-700/50 p-6">
             <div className="flex items-center gap-3 mb-4">
               <input
                 type="text"
-                value={spotifyQuery}
-                onChange={(e) => setSpotifyQuery(e.target.value)}
-                onKeyDown={handleSpotifySearchKeyDown}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
                 placeholder="Search for a song..."
                 className="flex-1 px-4 py-3 bg-gray-950 border border-gray-700/50 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all"
               />
               <button
-                onClick={handleSpotifySearch}
-                disabled={searchingSpotify || !spotifyQuery.trim()}
+                onClick={handleSearch}
+                disabled={searching || !searchQuery.trim()}
                 className="px-5 py-3 bg-green-600 hover:bg-green-500 disabled:bg-gray-800 disabled:text-gray-500 rounded-xl text-white font-medium transition-all flex items-center gap-2"
               >
-                {searchingSpotify ? (
+                {searching ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <Search className="w-5 h-5" />
@@ -252,9 +252,9 @@ export const ManualBuilder: React.FC = () => {
               </button>
             </div>
 
-            {spotifyResults.length > 0 && (
+            {searchResults.length > 0 && (
               <div className="space-y-2 max-h-80 overflow-y-auto">
-                {spotifyResults.map((track) => {
+                {searchResults.map((track) => {
                   const alreadyAdded = library.some(t => t.id === track.id);
                   const isAnalyzing = analyzingTrackId === track.id;
                   return (
@@ -298,7 +298,7 @@ export const ManualBuilder: React.FC = () => {
                       <span className="text-gray-500 text-xs flex-shrink-0">{formatDuration(track.duration)}</span>
                       {/* Add Button */}
                       <button
-                        onClick={() => handleAddSpotifyTrack(track)}
+                        onClick={() => handleAddSearchTrack(track)}
                         disabled={alreadyAdded || isAnalyzing}
                         className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 flex-shrink-0 ${
                           alreadyAdded

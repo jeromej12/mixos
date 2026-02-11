@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import { LandingPage } from './components/LandingPage';
-import { Dashboard } from './components/Dashboard';
-import { TrackSearch } from './components/TrackSearch';
 import { ManualBuilder } from './components/ManualBuilder';
 
-type View = 'landing' | 'dashboard' | 'search' | 'manual-builder';
+type View = 'landing' | 'manual-builder';
 
 function App() {
   const [currentView, setCurrentView] = useState<View>('landing');
@@ -35,32 +33,8 @@ function App() {
             </button>
             <div className="flex gap-4">
               <button
-                onClick={() => setCurrentView('dashboard')}
-                className={`px-4 py-2 rounded-md transition-colors ${
-                  currentView === 'dashboard'
-                    ? 'bg-purple-600 text-white'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Dashboard
-              </button>
-              <button
-                onClick={() => setCurrentView('search')}
-                className={`px-4 py-2 rounded-md transition-colors ${
-                  currentView === 'search'
-                    ? 'bg-purple-600 text-white'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Search
-              </button>
-              <button
                 onClick={() => setCurrentView('manual-builder')}
-                className={`px-4 py-2 rounded-md transition-colors ${
-                  currentView === 'manual-builder'
-                    ? 'bg-purple-600 text-white'
-                    : 'text-gray-400 hover:text-white'
-                }`}
+                className="px-4 py-2 rounded-md transition-colors bg-purple-600 text-white"
               >
                 Builder
               </button>
@@ -70,8 +44,6 @@ function App() {
       </nav>
 
       {/* Main Content */}
-      {currentView === 'dashboard' && <Dashboard />}
-      {currentView === 'search' && <TrackSearch />}
       {currentView === 'manual-builder' && <ManualBuilder />}
     </div>
   );
